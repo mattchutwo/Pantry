@@ -1,7 +1,8 @@
-from sys import exit  # imports exit method from system module 
+from sys import exit  # imports exit method from system module
 import sys,re,os # module import
+import io
 import am #seperate methods am.py
-from bcrypt import hashpw, checkpw, gensalt # bcrypt
+import bcrypt
 import e #AES encryption for user data
 
 #Main method that is basically the framework
@@ -43,7 +44,7 @@ def StartMenu():
 def SetmName():
     global mName
     while True:
-        mName=input("Please enter a name using only letters")
+        mName=input("Please enter a name using only letters\n - ")
         if not re.match("[a-z,A-Z]*$", mName):
             print("Only letters please")
             continue
@@ -56,31 +57,39 @@ def SetmPass():
     while True:
         flag=0
         print("Your master password must:\n\t- Contatin 8-16 characters\n\t- Contain at least 1 Lowercase letter\n\t- Contain at least 1 Uppercase letter\n\t- Contain at least 1 number\n\t- Contain at least 1 special character(!@#$)\n")
-        mPass=str(input("Input master password: \n - "))
+        mPass=str(input("Input master password: \n - ")).encode("utf-8")
 
         if len(mPass) < 8:
             print("Must be at least 8 characters\n")
             flag=-1
+
         if len(mPass) > 16:
             print("Must be shorter than 16 characters\n")
             flag=-1
+
         if ' ' in mPass:
             print("Cannot contain spaces")
             flag=-1
+
         if not re.search("[0-9]",mPass):
             print("Must contain a number")
             flag=-1
+
         if not re.search("[A-Z]",mPass):
             print("Must contain at least 1 uppercase letter")
             flag=-1
+
         if not re.search("[!@#$]",mPass):
             print("Must contain at least 1 special character")
             flag=-1
+
         if not re.search("[a-z]",mPass):
             print("Must contain at least 1 lowercase letter")
             flag=-1
+
         if flag == 0:
             break
+
         else:
             print("Please make sure your master password follows our requirements")
 
@@ -88,7 +97,8 @@ def HashPass(p):
     if p == "":
         return ''
     else:
-        return hashpw(p.encode("utf-8"), gensalt(14))
+        salt = bcrypt.gensalt(16)
+        return bcrypt.hashpw(p.encode("utf-8"), salt)
 
 #Method to export encrypted user accounts
 def Export():
@@ -101,29 +111,34 @@ def Export():
 
 def Import():
     global accWeb,accUser,accPass,mPass,mName,f
-    mName=f[0]
-    mPass=f[1]
-    f=f.readlines()
-    for line in f:
-        t=line.split(":")
-        accWeb.append(decypt(t[0]),key)
-        accUser.append(decypt(t[1]),key)
-        accPass.append(decypt(t[2]),key)
+    with open("d.txt", "r+") as f:
+        lineList = f.readlines()
+        mName=lineList[0]
+        mPass=lineList[1]
+        if lineList[2] == '':
+            return
+
+        for i in range(2,len(lineList)):
+            t=i.split(":")
+            accWeb.append(str(decypt(t[0])),key)
+            accUser.append(str(decypt(t[1])),key)
+            accPass.append(str(decypt(t[2])),key)
 
 def LogIn():
     global f, mName, mPass, inputPass, key
-    with open('d.txt') as f:
-      attempts=3
-      while attemps > 0:
-        mPass=str(input("Please enter your Master Password: ")).encode("utf-8")
-        if checkpw(mPass, f[1]):
-            key=mPass[:16].encode()##
-            am.Abyss()
-            mainMenu()
-        else:
-            am.Abyss()
-            print("Incorrect password! Try again.\n")
-            attemps-=1
+    with open('d.txt','r+') as f:
+        lineList = f.readlines()
+        attempts=3
+        while attempts > 0:
+            mPass=str(input("Please enter your Master Password: ")).encode("utf-8")
+            if bcrypt.checkpw(mPass, lineList[1].encode("utf-8")):
+                key=mPass[:16].encode("utf-8")##
+                am.Abyss()
+                mainMenu()
+            else:
+                am.Abyss()
+                print("Incorrect password! Try again.\n")
+                attemps-=1
             if attempts==0:
                 am.Abyss()
                 End("Too many password attemts")
@@ -133,8 +148,8 @@ def MainMenu():
     Export()
     Import()
     print("Main Menu".center(60,' ')+"\n"+"-"*60+"\n")
-    print("Welcome back {}!".format(mName))
-    print("1)  Find the password for an existing Website/App\n",
+    print("Welcome back, {}\!".format(mName))
+    print("\n 1)  Find the password for an existing Website/App\n",
           "2)  Add new Website/App and new password for it\n",
           "3)  Change an existing password for an existing Website/App\n",
           "4)  Remove an existing App/Website\n",
@@ -178,19 +193,24 @@ def ReturnToMenu(msg="\nWould you like to return to the menu? (Y/N)"):
 
 def FindPassword():
     global accWeb,accUser,accPass
+    if len(accUser) == 0:
+        print("No accounts!")
+        return
     while True:
         am.Abyss()
-        print(len(accUser)," Logins:")
+        print("".ljust(10)+len(accUser)," Logins:")
+        print("".ljust(10) + "Type 'm' to go back to the main menu")
         print("".ljust(10)+"Website:".ljust(22)+"Username:".ljust(25)+"Password:\n")
         for index in range(0,len(accWeb)):
             print("".ljust(10)+accWeb[index].ljust(22)+accUser[index].ljust(23)+"\t"+"*"*len(accPass[index]))
-        uChoice=str(input("\nFor which website would you like your login information?"))
+        uChoice=str(input("\nFor which website would you like your login information?")).lower()
+        if uChoice is 'm':
+            ReturnToMenu()
         if uChoice in accWeb:
             am.Abyss()
             print("".ljust(10)+"Website:".ljust(22)+"Username:".ljust(25)+"Password:\n")
             print("".ljust(10)+str(accWeb[accWeb.index(uChoice)]).ljust(22)+str(accUser[accWeb.index(uChoice)].ljust(25)+str(accPass[accWeb.index(uChoice)])))
             ReturnToMenu()
-
         else:
             continue
 
@@ -204,9 +224,10 @@ def AccAdd(site=""):
     global accWeb,accUser,accPass
     if site=="":
         nSite=str(input("Please enter the address for "+site+"\n - ")).encode()
+
     nUser=str(input("Please enter the username for "+site+"\n - ")).encode()
     nPass=str(input("Please enter the password for "+site+"\n - ")).encode()
-    accWeb.append(site)
+    accWeb.append(site).lower()
     accUser.append(nUser)
     accPass.append(nPass)
     am.Abyss()
@@ -271,7 +292,7 @@ def ModAcc():
                     except ValueError:
                         print("Please only enter numbers")
                 if uChoice == 1:
-                    accWeb[uChoiceAcc]=str(input("Please enter the new web address"))
+                    accWeb[uChoiceAcc]=str(input("Please enter the new web address")).lower()
                     am.Abyss()
                     Export()
                     MainMenu()
@@ -330,5 +351,8 @@ def End(cause):
     print("Now Exiting, {}. Have a nice day!".format(cause))
     mPass=''
     exit(0)
+
+
+
 
 StartMenu()
