@@ -105,9 +105,8 @@ def Export():
     global mName, mPass, accWeb, accUser, accPass,f
     with open("d.txt","w+") as f:  #Sets a file name creates new file if it does not exist
       f.write("{}\n{}\n".format(mName,HashPass(mPass)))
-      for i in range(0,len(accWeb)):
+      for i in range(len(accWeb)):                       
         f.write("{}:{}:{}\n".format(e.encrypt(accWeb[i],key),e.encrypt(accUser[i],key),e.encrypt(accPass[i],key)))
-
 
 def Import():
     global accWeb,accUser,accPass,mPass,mName,f
@@ -117,9 +116,9 @@ def Import():
         mPass=lineList[1]
         if lineList[2] == '':
             return
-
+        
         for i in range(2,len(lineList)):
-            t=i.split(":")
+            t=lineList[i].split(":")
             accWeb.append(str(decypt(t[0])),key)
             accUser.append(str(decypt(t[1])),key)
             accPass.append(str(decypt(t[2])),key)
