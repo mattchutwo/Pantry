@@ -1,7 +1,6 @@
 # Matthew Chu
 # Methods for app data
 import os
-import datetime
 
 
 # Void Method to seperate outputed text
