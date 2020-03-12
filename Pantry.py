@@ -125,7 +125,7 @@ def Export():
     Exports user data to d.txt
 
     """
-    global mName, mPass, accWeb, accUser, accPass
+    global mName, mPass, accWeb, accUser, accPass, key
 
     # open and write to file d.txt
     with open("d.txt", "w") as f:
@@ -142,7 +142,7 @@ def Import():
     Imports user data from d.txt
 
     """
-    global accWeb, accUser, accPass, mPass, mName
+    global accWeb, accUser, accPass, mPass, mName, key
     # open and read file d.txt
     with open("d.txt", "r") as f:
         lineList = f.readlines()
